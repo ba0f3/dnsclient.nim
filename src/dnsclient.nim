@@ -25,11 +25,11 @@ proc newDNSClient*(server: string, port = 53): DNSClient =
 proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   var
     header = initHeader()
-    question = initQuestion(query, kind)
+    question = initQuery(query, kind)
   header.id = random(high(uint16).int).uint16
 
   var buf = header.toStream()
-  buf.write(question.toStream().readAll())
+  question.toStream(buf)
   var bufLen = buf.getPosition()
   buf.setPosition(0)
 

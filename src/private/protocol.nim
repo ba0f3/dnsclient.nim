@@ -1,15 +1,15 @@
 import strutils, streams, endians, utils
 
 type
-  Query* = enum
+  QQuery* = enum
     QR_QUERY = 0
     QR_RESPONSE = 1
 
-  Authority* = enum
+  QAuthority* = enum
     AA_NONAUTHORITY = 0
     AA_AUTHORITY = 1
 
-  OpCode* = enum
+  QOpCode* = enum
     OPCODE_QUERY = 0
     OPCODE_IQUERY = 1
     OPCODE_STATUS = 2
@@ -64,9 +64,9 @@ type
 
   Header* = object
     id*: uint16
-    qr* {.bitsize:1.}: Query
-    opcode* {.bitsize:4.}: OpCode
-    aa* {.bitsize:1.}: Authority
+    qr* {.bitsize:1.}: QQuery
+    opcode* {.bitsize:4.}: QOpCode
+    aa* {.bitsize:1.}: QAuthority
     tc* {.bitsize:1.}: uint16
     rd* {.bitsize:1.}: uint16
     ra* {.bitsize:1.}: uint16
@@ -85,7 +85,7 @@ type
     rdlenght: uint16
     rdata: cstring
 
-  Question* = object
+  Query* = object
     qname*: string
     qkind*: QKind
     qclass*: QClass
@@ -99,8 +99,7 @@ proc dump*(h: Header) =
   echo ";; ->>HEADER<<- opcode: $#, status: $#, id: $#" % [opcode, rcode, $h.id]
   echo ";; QUERY: $#, ANSWER: $#, AUTHORITY: $#, ADDITIONAL: $#" % [$h.qdcount, $h.ancount, $h.nscount, $h.arcount]
 
-proc dump*(q: Question) =
-  dump(q.header)
+proc dump*(q: Query) =
   echo ";; QUESTION SECTION:"
   echo ";$#.			$#	$#" % [q.qname, $q.qclass, $q.qkind]
 
@@ -142,15 +141,13 @@ proc toStream*(h: var Header): StringStream =
   result.write(pack(h.arcount))
 
 
-proc initQuestion*(name: string, kind: QKind = A): Question =
+proc initQuery*(name: string, kind: QKind = A): Query =
   result.qname = name
   result.qkind = kind
   result.qclass= IN
 
 
-proc toStream*(q: var Question): StringStream =
-  result = newStringStream()
-  
+proc toStream*(q: var Query, data: StringStream) =
   var labelLen: uint8
   for label in q.qname.split('.'):
     labelLen = label.len.uint8
@@ -159,12 +156,12 @@ proc toStream*(q: var Question): StringStream =
     if labelLen >= 64.uint8:
       raise newException(ValueError, q.qname & "is not a legal name (label too long)")
 
-    result.write(labelLen)
-    result.write(label)
-  result.write('\0')
+    data.write(labelLen)
+    data.write(label)
+  data.write('\0')
 
-  result.write(pack(q.qkind.uint16))
-  result.write(pack(q.qclass.uint16))
+  data.write(pack(q.qkind.uint16))
+  data.write(pack(q.qclass.uint16))
 
 
 proc parseHeader(data: StringStream): Header =
@@ -178,21 +175,34 @@ proc parseHeader(data: StringStream): Header =
   flags = flags shr 1
   result.tc = flags and 1
   flags = flags shr 1
-  result.aa = Authority(flags and 1)
+  result.aa = QAuthority(flags and 1)
   flags = flags shr 1
-  result.opcode = OpCode(flags and 15)
+  result.opcode = QOpCode(flags and 15)
   flags = flags shr 4
-  result.qr = Query(flags)
+  result.qr = QQuery(flags)
   result.qdcount = pack(data.readInt16())
   result.ancount = pack(data.readInt16())
   result.nscount = pack(data.readInt16())
   result.arcount = pack(data.readInt16())
 
+proc parseQuery(data: StringStream): Query =
+  var name = ""
+  var labelLen = data.readInt8()
+  while true:
+    name.add(data.readStr(labelLen))
+    labelLen = data.readInt8()
+    if labelLen == 0:
+      break
+    name.add('.')
+  result.qname = name
+  result.qkind = pack(data.readInt16()).QKind
+  result.qclass = pack(data.readInt16()).QClass
+
 
 proc parseResponse*(data: StringStream) =
   var
     header = parseHeader(data)
+    query = parseQuery(data)
 
-  if header.dqcount > 0:
-    parseQuery(data, );
   dump(header)
+  dump(query)
