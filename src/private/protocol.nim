@@ -86,7 +86,6 @@ type
     rdata: cstring
 
   Question* = object
-    header*: Header
     qname*: string
     qkind*: QKind
     qclass*: QClass
@@ -144,15 +143,14 @@ proc toStream*(h: var Header): StringStream =
 
 
 proc initQuestion*(name: string, kind: QKind = A): Question =
-  result.header = initHeader()
   result.qname = name
   result.qkind = kind
   result.qclass= IN
 
 
 proc toStream*(q: var Question): StringStream =
-  result = q.header.toStream()
-
+  result = newStringStream()
+  
   var labelLen: uint8
   for label in q.qname.split('.'):
     labelLen = label.len.uint8
@@ -184,7 +182,7 @@ proc parseHeader(data: StringStream): Header =
   flags = flags shr 1
   result.opcode = OpCode(flags and 15)
   flags = flags shr 4
-  result.qr = Query(flags)  
+  result.qr = Query(flags)
   result.qdcount = pack(data.readInt16())
   result.ancount = pack(data.readInt16())
   result.nscount = pack(data.readInt16())
@@ -192,7 +190,9 @@ proc parseHeader(data: StringStream): Header =
 
 
 proc parseResponse*(data: StringStream) =
-  var header = parseHeader(data)
+  var
+    header = parseHeader(data)
+
   if header.dqcount > 0:
-    
+    parseQuery(data, );
   dump(header)
