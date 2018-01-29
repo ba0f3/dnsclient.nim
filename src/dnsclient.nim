@@ -3,7 +3,7 @@
 # Simple DNS client
 
 
-import strutils, net, nativesockets, random, private/protocol
+import strutils, streams, net, nativesockets, random, endians, private/protocol
 
 randomize()
 
@@ -15,45 +15,36 @@ type
 
 proc newDNSClient*(server: string, port: Port): DNSClient =
   new(result)
-  result.socket = newSocket()
+  result.socket = newSocket(sockType=SOCK_DGRAM,protocol=IPPROTO_UDP)
   result.server = server
   result.port = port
 
 proc newDNSClient*(server: string, port = 53): DNSClient =
   result = newDNSClient(server, Port(port))
 
+proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
+  var question = initQuestion(query, kind)
+  question.header.id = random(high(uint16).int).uint16
 
-proc `+`(p: pointer, offset: int): pointer =
-  result = cast[pointer](cast[int](p) + offset)
+  var buf = question.toStream()
+  var bufLen = buf.getPosition()
+  buf.setPosition(0)
 
-proc sendQuery*(c: DNSClient, query: string, kind: QKind = A): string =
-  let id = random(high(uint16).int).uint16
+  var data = newStringOfCap(bufLen)
+  discard buf.readData(addr data, bufLen)
+
+  let ret = c.socket.sendTo(c.server, c.port, addr data, bufLen)
+  if ret != bufLen:
+    raise newException(IOError, "dns question sent fail")
+
   var
-    header = initHeader()
-    buf = alloc0(256)
-    bufLen = 12
-  header.id = id
-  header.qdcount = 1
-  copyMem(buf, addr header, bufLen)
-
-  for label in query.split('.'):
-    var labelLen = label.len
-    if labelLen < 1:
-      raise newException(ValueError, query & "is not a legal name (empty label)")
-    if labelLen > 63:
-      raise newException(ValueError, query & "is not a legal name (label too long)")
-
-    copyMem(buf+bufLen, addr labelLen, 1)
-    inc(bufLen)
-    copyMem(buf+bufLen, addr label, labelLen)
-    inc(bufLen, labelLen)
-
-
-  let ret = c.socket.sendTo(c.server, c.port, addr buf, bufLen)
-  echo $ret
-
-
+    resp = newStringOfCap(4096)
+    respLen = c.socket.recvFrom(resp, 4096, c.server, c.port)
+  buf.setPosition(0)
+  buf.write(resp)
+  buf.setPosition(0)
+  parseResponse(buf)
 
 when isMainModule:
   let client = newDNSClient("8.8.8.8")
-  var res = client.sendQuery("google.com")
+  client.sendQuery("google.com", A)
