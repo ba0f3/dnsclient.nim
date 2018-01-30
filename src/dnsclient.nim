@@ -19,13 +19,13 @@ proc newDNSClient*(server: string, port: Port): DNSClient =
   result.server = server
   result.port = port
 
-proc newDNSClient*(server: string, port = 53): DNSClient =
+proc newDNSClient*(server = "8.8.8.8", port = 53): DNSClient =
   result = newDNSClient(server, Port(port))
 
 proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   var
     header = initHeader()
-    question = initQuery(query, kind)
+    question = initQuestion(query, kind)
   header.id = random(high(uint16).int).uint16
 
   var buf = header.toStream()
@@ -42,12 +42,13 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
 
   var
     resp = newStringOfCap(4096)
-    respLen = c.socket.recvFrom(resp, 4096, c.server, c.port)
+  discard c.socket.recvFrom(resp, 4096, c.server, c.port)
+
   buf.setPosition(0)
   buf.write(resp)
   buf.setPosition(0)
   parseResponse(buf)
 
 when isMainModule:
-  let client = newDNSClient("8.8.8.8")
-  client.sendQuery("google.com", A)
+  let client = newDNSClient()
+  client.sendQuery("huy.im", NS)

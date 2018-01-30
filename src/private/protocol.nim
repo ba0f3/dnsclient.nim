@@ -77,19 +77,18 @@ type
     nscount*: uint16
     arcount*: uint16
 
-  ResponsePacket* = object
+  Question* = object
+    name*: string
+    kind*: QKind
+    class*: QClass
+
+  Answer* = object
     name: string
-    kind: uint16
-    class: uint16
+    kind: QKind
+    class: QClass
     ttl: uint32
-    rdlenght: uint16
-    rdata: cstring
-
-  Query* = object
-    qname*: string
-    qkind*: QKind
-    qclass*: QClass
-
+    rdlength: uint16
+    rdata: string
 
 proc dump*(h: Header) =
   let
@@ -99,10 +98,15 @@ proc dump*(h: Header) =
   echo ";; ->>HEADER<<- opcode: $#, status: $#, id: $#" % [opcode, rcode, $h.id]
   echo ";; QUERY: $#, ANSWER: $#, AUTHORITY: $#, ADDITIONAL: $#" % [$h.qdcount, $h.ancount, $h.nscount, $h.arcount]
 
-proc dump*(q: Query) =
+proc dump*(q: Question) =
   echo ";; QUESTION SECTION:"
-  echo ";$#.			$#	$#" % [q.qname, $q.qclass, $q.qkind]
+  echo ";$#.\t\t\t$#\t$#" % [q.name, $q.class, $q.kind]
 
+
+proc dump*(answers: seq[Answer]) =
+  echo ";; ANSWER SECTION:"
+  for ans in answers:
+    echo "$#.\t\t\t$#\t$#\t$#\t$#." % [ans.name, $ans.ttl, $ans.class, $ans.kind, ans.rdata]
 
 proc initHeader*(): Header =
   result.id = 2018
@@ -117,7 +121,7 @@ proc toStream*(h: var Header): StringStream =
   result = newStringStream()
   var flags: uint16
 
-  result.write(pack(h.id))
+  result.writeShort(h.id)
 
   flags = 0
   flags = flags or h.qr.uint16
@@ -134,38 +138,38 @@ proc toStream*(h: var Header): StringStream =
   flags = flags shl 7
   flags = flags or h.rcode
 
-  result.write(pack(flags))
-  result.write(pack(h.qdcount))
-  result.write(pack(h.ancount))
-  result.write(pack(h.nscount))
-  result.write(pack(h.arcount))
+  result.writeShort(flags)
+  result.writeShort(h.qdcount)
+  result.writeShort(h.ancount)
+  result.writeShort(h.nscount)
+  result.writeShort(h.arcount)
 
 
-proc initQuery*(name: string, kind: QKind = A): Query =
-  result.qname = name
-  result.qkind = kind
-  result.qclass= IN
+proc initQuestion*(name: string, kind: QKind = A): Question =
+  result.name = name
+  result.kind = kind
+  result.class= IN
 
 
-proc toStream*(q: var Query, data: StringStream) =
+proc toStream*(q: var Question, data: StringStream) =
   var labelLen: uint8
-  for label in q.qname.split('.'):
+  for label in q.name.split('.'):
     labelLen = label.len.uint8
     if labelLen < 1.uint8:
-      raise newException(ValueError, q.qname & "is not a legal name (empty label)")
+      raise newException(ValueError, q.name & "is not a legal name (empty label)")
     if labelLen >= 64.uint8:
-      raise newException(ValueError, q.qname & "is not a legal name (label too long)")
+      raise newException(ValueError, q.name & "is not a legal name (label too long)")
 
     data.write(labelLen)
     data.write(label)
   data.write('\0')
 
-  data.write(pack(q.qkind.uint16))
-  data.write(pack(q.qclass.uint16))
+  data.writeShort(q.kind.uint16)
+  data.writeShort(q.class.uint16)
 
 
 proc parseHeader(data: StringStream): Header =
-  result.id = pack(data.readInt16())
+  result.id = data.readShort()
   var flags = data.readInt16().uint16
   result.rcode = flags and 15
   flags = flags shr 7
@@ -180,29 +184,37 @@ proc parseHeader(data: StringStream): Header =
   result.opcode = QOpCode(flags and 15)
   flags = flags shr 4
   result.qr = QQuery(flags)
-  result.qdcount = pack(data.readInt16())
-  result.ancount = pack(data.readInt16())
-  result.nscount = pack(data.readInt16())
-  result.arcount = pack(data.readInt16())
+  result.qdcount = data.readShort()
+  result.ancount = data.readShort()
+  result.nscount = data.readShort()
+  result.arcount = data.readShort()
 
-proc parseQuery(data: StringStream): Query =
-  var name = ""
-  var labelLen = data.readInt8()
-  while true:
-    name.add(data.readStr(labelLen))
-    labelLen = data.readInt8()
-    if labelLen == 0:
-      break
-    name.add('.')
-  result.qname = name
-  result.qkind = pack(data.readInt16()).QKind
-  result.qclass = pack(data.readInt16()).QClass
+proc parseQuestion(data: StringStream): Question =
+  result.name = getName(data)
+  result.kind = QKind(data.readShort())
+  result.class = QClass(data.readShort())
+
+proc parseAnswer(data: StringStream): Answer =
+  # name offset
+  var offset = data.readShort() xor 0xC000
+  result.name = getName(data, offset.int)
+  result.kind = QKind(data.readShort())
+  result.class = QClass(data.readShort())
+  result.ttl = data.readInt()
+  result.rdlength = data.readShort()
+  result.rdata = getName(data)
 
 
 proc parseResponse*(data: StringStream) =
   var
     header = parseHeader(data)
-    query = parseQuery(data)
+    question = parseQuestion(data)
+    answers: seq[Answer] = @[]
+
+  for _ in 0..<header.ancount.int:
+     var answer = parseAnswer(data)
+     answers.add(answer)
 
   dump(header)
-  dump(query)
+  dump(question)
+  dump(answers)
