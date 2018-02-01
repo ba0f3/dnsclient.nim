@@ -51,4 +51,5 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
 
 when isMainModule:
   let client = newDNSClient()
-  client.sendQuery("huy.im", NS)
+  client.sendQuery("huy.im", MX)
+

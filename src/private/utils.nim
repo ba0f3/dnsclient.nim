@@ -25,24 +25,27 @@ proc writeShort*[T: int16|uint16](s: StringStream, value: T) {.inline.} =
   bigEndian16(addr input, addr value)
   s.write(input)
 
-proc getName*(data: StringStream, offset = 0): string =
+proc getBits(data: auto, offset: int, bits = 1): int =
+  let mask = ((1 shl bits) - 1) shl offset
+  result = (data.int and mask) shr offset
+
+proc getName*(data: StringStream): string =
   var labels: seq[string] = @[]
-  var lastPos: int
-  if offset > 0:
-    lastPos = data.getPosition()
-    # toggle off 2 first bits
-    data.setPosition(offset)
+  while true:
+    let
+      length  = data.readInt8().uint8
+      magic = length.getBits(6, 2)
 
-  var labelLen = data.readInt8()
-  while labelLen != 0:
-    if labelLen == -64:
-      var jump = data.readInt8()
-      labels.add(data.getName(jump))
+    if magic == 3:
+      data.setPosition(data.getPosition() - 1)
+      let offset = int(data.readShort() xor 0xC000)
+      let currentPosition = data.getPosition()
+      data.setPosition(offset)
+      labels.add(data.getName())
+      data.setPosition(currentPosition)
       break
+    elif length.int > 0:
+        labels.add(data.readStr(length.int))
     else:
-      labels.add(data.readStr(labelLen))
-    labelLen = data.readInt8()
+      break
   result = labels.join(".")
-
-  if offset > 0:
-     data.setPosition(lastPos)

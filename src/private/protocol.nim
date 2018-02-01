@@ -22,6 +22,7 @@ type
     ANY = 255
 
   QKind* = enum
+    UNUSED = 0
     A = 1
     NS = 2
     CNAME = 5
@@ -57,10 +58,11 @@ type
     OPENPGPKEY = 61
     TKEY = 249
     TSIG = 250
+    ALL = 255
     URI = 256
     CAA = 257
-    TA = 32768
-    DLV = 32769
+#    TA = 32768
+#    DLV = 32769
 
   Header* = object
     id*: uint16
@@ -82,13 +84,21 @@ type
     kind*: QKind
     class*: QClass
 
-  Answer* = object
+  ResourceRecord* = object
     name: string
-    kind: QKind
     class: QClass
     ttl: uint32
     rdlength: uint16
-    rdata: string
+    case kind: QKind
+    of TXT:
+      txtlength: int8
+      txtdata: string
+    of MX:
+      preference: uint16
+      mx: string
+    else:
+      rdata: string
+
 
 proc dump*(h: Header) =
   let
@@ -103,10 +113,20 @@ proc dump*(q: Question) =
   echo ";$#.\t\t\t$#\t$#" % [q.name, $q.class, $q.kind]
 
 
-proc dump*(answers: seq[Answer]) =
-  echo ";; ANSWER SECTION:"
-  for ans in answers:
-    echo "$#.\t\t\t$#\t$#\t$#\t$#." % [ans.name, $ans.ttl, $ans.class, $ans.kind, ans.rdata]
+proc dump*(rr: seq[ResourceRecord], section = "ANSWER") =
+  if len(rr) <= 0:
+    return
+  echo ";; $# SECTION:" % section
+  for r in rr:
+    var data = ""
+    case r.kind
+    of TXT:
+      data = r.txtdata
+    of MX:
+      data = "$# $#" % [$r.preference, r.mx]
+    else:
+      data = r.rdata
+    echo "$#.\t\t\t$#\t$#\t$#\t$#" % [r.name, $r.ttl, $r.class, $r.kind, data]
 
 proc initHeader*(): Header =
   result.id = 2018
@@ -194,27 +214,44 @@ proc parseQuestion(data: StringStream): Question =
   result.kind = QKind(data.readShort())
   result.class = QClass(data.readShort())
 
-proc parseAnswer(data: StringStream): Answer =
+proc parseRR(data: StringStream): ResourceRecord =
   # name offset
-  var offset = data.readShort() xor 0xC000
-  result.name = getName(data, offset.int)
+  result.name = getName(data)
   result.kind = QKind(data.readShort())
   result.class = QClass(data.readShort())
   result.ttl = data.readInt()
   result.rdlength = data.readShort()
-  result.rdata = getName(data)
+  #result.rdata = getName(data)
+  case result.kind
+  of TXT:
+    result.txtlength = data.readInt8()
+    result.txtdata = data.readStr(result.txtlength)
+  of AAAA:
+    result.rdata = data.readStr(result.rdlength.int)
+  of MX:
+    result.preference = data.readShort()
+    result.mx = data.getName()
+  else:
+    result.rdata = getName(data)
 
 
 proc parseResponse*(data: StringStream) =
   var
     header = parseHeader(data)
     question = parseQuestion(data)
-    answers: seq[Answer] = @[]
+    answers: seq[ResourceRecord] = @[]
+    authorityRRs: seq[ResourceRecord] = @[]
+
 
   for _ in 0..<header.ancount.int:
-     var answer = parseAnswer(data)
+     var answer = parseRR(data)
      answers.add(answer)
+
+  for _ in 0..<header.nscount.int:
+    var answer = parseRR(data)
+    authorityRRs.add(answer)
 
   dump(header)
   dump(question)
   dump(answers)
+  dump(authorityRRs, "AUTHORITY")
