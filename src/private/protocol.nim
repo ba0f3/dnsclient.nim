@@ -19,7 +19,7 @@ type
     CH = 3
     HS = 4
     NONE = 254
-    ANY = 255
+    ALL = 255
 
   QKind* = enum
     UNUSED = 0
@@ -28,6 +28,7 @@ type
     CNAME = 5
     SOA = 6
     PTR = 12
+    HINFO = 13
     MX = 15
     TXT = 16
     RP = 17
@@ -58,7 +59,7 @@ type
     OPENPGPKEY = 61
     TKEY = 249
     TSIG = 250
-    ALL = 255
+    ANY = 255
     URI = 256
     CAA = 257
 #    TA = 32768
@@ -96,6 +97,9 @@ type
     of MX:
       preference: uint16
       mx: string
+    of HINFO:
+      cpu: string
+      os: string
     else:
       rdata: string
 
@@ -124,6 +128,8 @@ proc dump*(rr: seq[ResourceRecord], section = "ANSWER") =
       data = r.txtdata
     of MX:
       data = "$# $#" % [$r.preference, r.mx]
+    of HINFO:
+      data = "\"$#\" \"$#\"" % [r.cpu, r.os]
     else:
       data = r.rdata
     echo "$#.\t\t\t$#\t$#\t$#\t$#" % [r.name, $r.ttl, $r.class, $r.kind, data]
@@ -210,18 +216,19 @@ proc parseHeader(data: StringStream): Header =
   result.arcount = data.readShort()
 
 proc parseQuestion(data: StringStream): Question =
-  result.name = getName(data)
+  result.name = data.getName()
   result.kind = QKind(data.readShort())
   result.class = QClass(data.readShort())
 
 proc parseRR(data: StringStream): ResourceRecord =
   # name offset
-  result.name = getName(data)
+  result.name = data.getName()
+  echo "name ", result.name
   result.kind = QKind(data.readShort())
   result.class = QClass(data.readShort())
   result.ttl = data.readInt()
   result.rdlength = data.readShort()
-  #result.rdata = getName(data)
+  #result.rdata = data.getName()
   case result.kind
   of TXT:
     result.txtlength = data.readInt8()
@@ -231,8 +238,11 @@ proc parseRR(data: StringStream): ResourceRecord =
   of MX:
     result.preference = data.readShort()
     result.mx = data.getName()
+  of HINFO:
+    result.cpu = data.readStr(data.readInt8())
+    result.os = data.readStr(data.readInt8())
   else:
-    result.rdata = getName(data)
+    result.rdata = data.getName()
 
 
 proc parseResponse*(data: StringStream) =
@@ -242,7 +252,10 @@ proc parseResponse*(data: StringStream) =
     answers: seq[ResourceRecord] = @[]
     authorityRRs: seq[ResourceRecord] = @[]
 
-
+  echo header
+  dump(header)
+  dump(question)
+  echo "-------------------"
   for _ in 0..<header.ancount.int:
      var answer = parseRR(data)
      answers.add(answer)
@@ -251,7 +264,6 @@ proc parseResponse*(data: StringStream) =
     var answer = parseRR(data)
     authorityRRs.add(answer)
 
-  dump(header)
-  dump(question)
+
   dump(answers)
   dump(authorityRRs, "AUTHORITY")

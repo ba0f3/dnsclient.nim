@@ -26,7 +26,7 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   var
     header = initHeader()
     question = initQuestion(query, kind)
-  header.id = random(high(uint16).int).uint16
+  header.id = rand(high(uint16).int).uint16
 
   var buf = header.toStream()
   question.toStream(buf)
@@ -36,9 +36,9 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   var data = newStringOfCap(bufLen)
   discard buf.readData(addr data, bufLen)
 
-  let ret = c.socket.sendTo(c.server, c.port, addr data, bufLen)
-  if ret != bufLen:
-    raise newException(IOError, "dns question sent fail")
+  c.socket.sendTo(c.server, c.port, addr data, bufLen)
+  #if ret != bufLen:
+  #  raise newException(IOError, "dns question sent fail")
 
   var
     resp = newStringOfCap(4096)
@@ -51,5 +51,5 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
 
 when isMainModule:
   let client = newDNSClient()
-  client.sendQuery("huy.im", MX)
+  client.sendQuery("huy.im", ANY)
 

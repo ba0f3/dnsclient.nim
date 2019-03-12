@@ -33,9 +33,8 @@ proc getName*(data: StringStream): string =
   var labels: seq[string] = @[]
   while true:
     let
-      length  = data.readInt8().uint8
+      length  = data.readInt8()
       magic = length.getBits(6, 2)
-
     if magic == 3:
       data.setPosition(data.getPosition() - 1)
       let offset = int(data.readShort() xor 0xC000)
