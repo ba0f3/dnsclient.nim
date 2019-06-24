@@ -30,10 +30,10 @@ proc getBits(data: auto, offset: int, bits = 1): int =
   result = (data.int and mask) shr offset
 
 proc getName*(data: StringStream): string =
-  var labels: seq[string] = @[]
+  var labels: seq[string]
   while true:
     let
-      length  = data.readInt8()
+      length  = data.readUint8()
       magic = length.getBits(6, 2)
     if magic == 3:
       data.setPosition(data.getPosition() - 1)

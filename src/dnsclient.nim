@@ -2,10 +2,10 @@
 # Copyright Huy Doan
 # Simple DNS client
 
+import strutils, streams, net, nativesockets, endians
+import private/[protocol, records, types]
 
-import strutils, streams, net, nativesockets, random, endians, private/protocol
-
-randomize()
+export records, types
 
 type
   DNSClient = ref object of RootObj
@@ -26,7 +26,6 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   var
     header = initHeader()
     question = initQuestion(query, kind)
-  header.id = rand(high(uint16).int).uint16
 
   var buf = header.toStream()
   question.toStream(buf)
@@ -40,9 +39,9 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   #if ret != bufLen:
   #  raise newException(IOError, "dns question sent fail")
 
-  var
-    resp = newStringOfCap(4096)
-  discard c.socket.recvFrom(resp, 4096, c.server, c.port)
+  bufLen = 4096
+  var resp = newStringOfCap(bufLen)
+  discard c.socket.recvFrom(resp, bufLen, c.server, c.port)
 
   buf.setPosition(0)
   buf.write(resp)
@@ -51,5 +50,5 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
 
 when isMainModule:
   let client = newDNSClient()
-  client.sendQuery("huy.im", ANY)
+  client.sendQuery("huy.im", A)
 
