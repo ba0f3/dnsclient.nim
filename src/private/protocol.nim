@@ -34,7 +34,7 @@ proc dumpRR*(rr: seq[ResourceRecord], section = "ANSWER") =
     of TXT:
       data = $r.toTXTRecord
     else:
-      raise newException(ValueError, "unsupported record type")
+      raise newException(ValueError, "unsupported record type: " & $r.kind)
 
     echo "$#.\t\t\t$#\t$#\t$#\t$#" % [r.name, $r.ttl, $r.class, $r.kind, data]
 
@@ -144,7 +144,7 @@ proc parseResponse*(data: StringStream) =
   echo header
   dumpHeader(header)
   dumpQuestion(question)
-  echo "-------------------"
+  echo "-".repeat(20)
   for _ in 0..<header.ancount.int:
      var answer = parseRR(data)
      answers.add(answer)
