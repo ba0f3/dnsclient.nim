@@ -23,12 +23,16 @@ proc dumpRR*(rr: seq[ResourceRecord], section = "ANSWER") =
   for r in rr:
     var data = ""
     case r.kind
-    of TXT:
-      data = $r.toTXTRecord
-    of MX:
-      data = $r.toMXRecord
+    of A:
+      data = $r.toARecord
     of HINFO:
       data = $r.toHINFORecord
+    of MX:
+      data = $r.toMXRecord
+    of NS:
+      data = $r.toNSRecord
+    of TXT:
+      data = $r.toTXTRecord
     else:
       raise newException(ValueError, "unsupported record type")
 

@@ -49,6 +49,20 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   parseResponse(buf)
 
 when isMainModule:
+  import os
+  if paramCount() != 2:
+    quit("Usage: " & getAppFilename() & " q-type host")
   let client = newDNSClient()
-  client.sendQuery("huy.im", A)
+
+  var
+    qtype = paramStr(1)
+    kind: QKind
+  for k in QKind.low..QKind.high:
+    if qtype == $k:
+      kind = k
+      break
+  if kind == UNUSED:
+    quit("unsupported q-type")
+
+  client.sendQuery(paramStr(2), kind)
 

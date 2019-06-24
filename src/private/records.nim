@@ -1,2 +1,2 @@
-import records/[txt, mx, hinfo]
-export txt, mx, hinfo
+import records/[a, hinfo, mx, ns, txt]
+export a, hinfo, mx, ns, txt

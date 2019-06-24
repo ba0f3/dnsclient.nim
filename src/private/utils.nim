@@ -48,3 +48,7 @@ proc getName*(data: StringStream): string =
     else:
       break
   result = labels.join(".")
+
+proc ipv4ToString*(ip: int32): string =
+  var arr = cast[array[4, uint8]](ip)
+  arr.join(".")
