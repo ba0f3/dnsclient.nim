@@ -21,22 +21,7 @@ proc dumpRR*(rr: seq[ResourceRecord], section = "ANSWER") =
     return
   echo ";; $# SECTION:" % section
   for r in rr:
-    var data = ""
-    case r.kind
-    of A:
-      data = $r.toARecord
-    of HINFO:
-      data = $r.toHINFORecord
-    of MX:
-      data = $r.toMXRecord
-    of NS:
-      data = $r.toNSRecord
-    of TXT:
-      data = $r.toTXTRecord
-    else:
-      raise newException(ValueError, "unsupported record type: " & $r.kind)
-
-    echo "$#.\t\t\t$#\t$#\t$#\t$#" % [r.name, $r.ttl, $r.class, $r.kind, data]
+    echo "$#.\t\t\t$#\t$#\t$#\t$#" % [r.name, $r.ttl, $r.class, $r.kind, r.toString()]
 
 proc initHeader*(): Header =
   result.id = rand(high(uint16).int).uint16
@@ -127,12 +112,31 @@ proc parseQuestion(data: StringStream): Question =
 proc parseRR(data: StringStream): ResourceRecord =
   # name offset
   new(result)
-  result.name = data.getName()
-  result.kind = QKind(data.readShort())
+  let
+    name = data.getName()
+    kind = QKind(data.readShort())
+  case kind
+  of A:
+    result = ARecord(name: name, kind: kind)
+  of CNAME:
+    result = CNAMERecord(name: name, kind: kind)
+  of HINFO:
+    result = HINFORecord(name: name, kind: kind)
+  of MX:
+    result = MXRecord(name: name, kind: kind)
+  of NS:
+    result = NSRecord(name: name, kind: kind)
+  of SOA:
+    result = SOARecord(name: name, kind: kind)
+  of TXT:
+    result = TXTRecord(name: name, kind: kind)
+  else:
+    raise newException(ValueError, ": " & $kind)
+
   result.class = QClass(data.readShort())
-  result.ttl = data.readInt()
+  result.ttl = data.readTTL().uint32
   result.rdlength = data.readShort()
-  result.rdata = newStringStream(data.readStr(result.rdlength.int))
+  result.parse(data)
 
 proc parseResponse*(data: StringStream) =
   var
@@ -141,7 +145,6 @@ proc parseResponse*(data: StringStream) =
     answers: seq[ResourceRecord] = @[]
     authorityRRs: seq[ResourceRecord] = @[]
 
-  echo header
   dumpHeader(header)
   dumpQuestion(question)
   echo "-".repeat(20)
@@ -152,7 +155,6 @@ proc parseResponse*(data: StringStream) =
   for _ in 0..<header.nscount.int:
     var answer = parseRR(data)
     authorityRRs.add(answer)
-
 
   dumpRR(answers)
   dumpRR(authorityRRs, "AUTHORITY")

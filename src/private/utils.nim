@@ -10,7 +10,7 @@ import endians, streams, strutils
 #  var inp = inp
 #  bigEndian16(addr result, addr inp)
 
-proc readInt*(s: StringStream): uint32 {.inline.} =
+proc readTTL*(s: StringStream): int32 {.inline.} =
   var value = s.readInt32()
   bigEndian32(addr result, addr value)
 
@@ -50,5 +50,5 @@ proc getName*(data: StringStream): string =
   result = labels.join(".")
 
 proc ipv4ToString*(ip: int32): string =
-  var arr = cast[array[4, uint8]](ip)
+  let arr = cast[array[4, uint8]](ip)
   arr.join(".")

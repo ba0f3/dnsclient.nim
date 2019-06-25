@@ -15,6 +15,7 @@ type
 
     QClass* = enum
       IN = 1
+      CS = 2
       CH = 3
       HS = 4
       NONE = 254
@@ -90,4 +91,11 @@ type
       ttl*: uint32
       rdlength*: uint16
       kind*: QKind
-      rdata*: StringStream
+      #rdata*: StringStream
+
+
+method parse*(e: ResourceRecord, data: StringStream) {.base.} =
+  raise newException(LibraryError, "to override!")
+
+method toString*(e: ResourceRecord): string {.base.} =
+  raise newException(LibraryError, "to override!")

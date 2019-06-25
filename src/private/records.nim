@@ -1,2 +1,3 @@
-import records/[a, hinfo, mx, ns, txt]
-export a, hinfo, mx, ns, txt
+import streams, strutils, types, utils
+
+include records/[a, cname, hinfo, mx, ns, soa, txt]
