@@ -22,7 +22,7 @@ proc newDNSClient*(server: string, port: Port): DNSClient =
 proc newDNSClient*(server = "8.8.8.8", port = 53): DNSClient =
   result = newDNSClient(server, Port(port))
 
-proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
+proc sendQuery*(c: DNSClient, query: string, kind: QKind = A): Response =
   var
     header = initHeader()
     question = initQuestion(query, kind)
@@ -36,8 +36,6 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   discard buf.readData(addr data, bufLen)
 
   c.socket.sendTo(c.server, c.port, addr data, bufLen)
-  #if ret != bufLen:
-  #  raise newException(IOError, "dns question sent fail")
 
   bufLen = 4096
   var resp = newStringOfCap(bufLen)
@@ -46,7 +44,7 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A) =
   buf.setPosition(0)
   buf.write(resp)
   buf.setPosition(0)
-  parseResponse(buf)
+  result = parseResponse(buf)
 
 when isMainModule:
   import os
@@ -64,5 +62,8 @@ when isMainModule:
   if kind == UNUSED:
     quit("unsupported q-type")
 
-  client.sendQuery(paramStr(2), kind)
-
+  let resp = client.sendQuery(paramStr(2), kind)
+  dumpHeader(resp.header)
+  dumpQuestion(resp.question)
+  dumpRR(resp.answers)
+  dumpRR(resp.authorityRRs, "AUTHORITY")

@@ -122,39 +122,40 @@ proc parseRR(data: StringStream): ResourceRecord =
     result = CNAMERecord(name: name, kind: kind)
   of HINFO:
     result = HINFORecord(name: name, kind: kind)
+  of MB:
+    result = MBRecord(name: name, kind: kind)
+  of MINFO:
+    result = MINFORecord(name: name, kind: kind)
+  of MR:
+    result = MRRecord(name: name, kind: kind)
   of MX:
     result = MXRecord(name: name, kind: kind)
   of NS:
     result = NSRecord(name: name, kind: kind)
+  of PTR:
+    result = PTRRecord(name: name, kind: kind)
   of SOA:
     result = SOARecord(name: name, kind: kind)
   of TXT:
     result = TXTRecord(name: name, kind: kind)
   else:
-    raise newException(ValueError, ": " & $kind)
+    raise newException(ValueError, "RR for " & $kind & " is not implemented yet")
 
   result.class = QClass(data.readShort())
   result.ttl = data.readTTL().uint32
   result.rdlength = data.readShort()
   result.parse(data)
 
-proc parseResponse*(data: StringStream) =
-  var
-    header = parseHeader(data)
-    question = parseQuestion(data)
-    answers: seq[ResourceRecord] = @[]
-    authorityRRs: seq[ResourceRecord] = @[]
+proc parseResponse*(data: StringStream): Response =
+  result.header = parseHeader(data)
+  result.question = parseQuestion(data)
 
-  dumpHeader(header)
-  dumpQuestion(question)
+
   echo "-".repeat(20)
-  for _ in 0..<header.ancount.int:
+  for _ in 0..<result.header.ancount.int:
      var answer = parseRR(data)
-     answers.add(answer)
+     result.answers.add(answer)
 
-  for _ in 0..<header.nscount.int:
+  for _ in 0..<result.header.nscount.int:
     var answer = parseRR(data)
-    authorityRRs.add(answer)
-
-  dumpRR(answers)
-  dumpRR(authorityRRs, "AUTHORITY")
+    result.authorityRRs.add(answer)

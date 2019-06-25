@@ -1,9 +1,9 @@
 type MXRecord* = ref object of ResourceRecord
   preference*: uint16
-  mx*: string
+  exchange*: string
 
-method toString*(r: MXRecord): string = $r.preference & " " & r.mx
+method toString*(r: MXRecord): string = $r.preference & " " & r.exchange
 
 method parse*(r: MXRecord, data: StringStream) =
   r.preference = data.readShort()
-  r.mx = data.getName()
+  r.exchange = data.getName()

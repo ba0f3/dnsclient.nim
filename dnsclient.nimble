@@ -1,11 +1,14 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.0.1"
 author        = "Huy Doan"
-description   = "Simple DNS client"
+description   = "Simple DNS Client & Library"
 license       = "MIT"
 srcDir        = "src"
+installExt    = @["nim"]
+bin           = @["dnsclient"]
+
 
 # Dependencies
 
-requires "nim >= 0.17.3"
+requires "nim >= 0.20.0"

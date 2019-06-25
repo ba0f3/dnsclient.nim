@@ -27,8 +27,14 @@ type
       NS = 2
       CNAME = 5
       SOA = 6
+      MB = 7
+      MG = 8
+      MR = 9
+      NULL = 10
+      WKS = 11
       PTR = 12
       HINFO = 13
+      MINFO = 14
       MX = 15
       TXT = 16
       RP = 17
@@ -93,9 +99,16 @@ type
       kind*: QKind
       #rdata*: StringStream
 
+    Response* = object
+      header*: Header
+      question*: Question
+      answers*: seq[ResourceRecord]
+      authorityRRs*: seq[ResourceRecord]
 
-method parse*(e: ResourceRecord, data: StringStream) {.base.} =
-  raise newException(LibraryError, "to override!")
 
-method toString*(e: ResourceRecord): string {.base.} =
+
+method parse*(r: ResourceRecord, data: StringStream) {.base.} =
+  raise newException(LibraryError, "parser for " & $r.kind & " is not implemented yet")
+
+method toString*(r: ResourceRecord): string {.base.} =
   raise newException(LibraryError, "to override!")

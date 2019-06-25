@@ -4,6 +4,6 @@ type HINFORecord* = ref object of ResourceRecord
 
 method toString*(r: HINFORecord): string = r.cpu & " " & r.os
 
-proc parse*(r: HINFORecord, data: StringStream) =
+method parse*(r: HINFORecord, data: StringStream) =
   r.cpu = data.readStr(data.readInt8())
   r.os = data.readStr(data.readInt8())
