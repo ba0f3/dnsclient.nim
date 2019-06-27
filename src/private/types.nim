@@ -30,7 +30,6 @@ type
       MB = 7
       MG = 8
       MR = 9
-      NULL = 10
       WKS = 11
       PTR = 12
       HINFO = 13

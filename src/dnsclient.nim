@@ -5,7 +5,7 @@
 import strutils, streams, net, nativesockets, endians
 import private/[protocol, records, types]
 
-export records, types
+export records, types, TimeoutError
 
 type
   DNSClient = ref object of RootObj
@@ -14,15 +14,18 @@ type
     socket: Socket
 
 proc newDNSClient*(server: string, port: Port): DNSClient =
+  ## Create new DNS client
   new(result)
   result.socket = newSocket(sockType=SOCK_DGRAM,protocol=IPPROTO_UDP)
   result.server = server
   result.port = port
 
 proc newDNSClient*(server = "8.8.8.8", port = 53): DNSClient =
+  ## Create new DNS client with default dns server `8.8.8.8`
   result = newDNSClient(server, Port(port))
 
-proc sendQuery*(c: DNSClient, query: string, kind: QKind = A): Response =
+proc sendQuery*(c: DNSClient, query: string, kind: QKind = A, timeout = 500): Response =
+  ## send dns query to server
   var
     header = initHeader()
     question = initQuestion(query, kind)
@@ -37,9 +40,14 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A): Response =
 
   c.socket.sendTo(c.server, c.port, addr data, bufLen)
 
-  bufLen = 4096
-  var resp = newStringOfCap(bufLen)
-  discard c.socket.recvFrom(resp, bufLen, c.server, c.port)
+  bufLen = 1024
+  var
+    resp = newStringOfCap(bufLen)
+    readFds = @[c.socket.getFd]
+  if selectRead(readFds, timeout) > 0:
+    discard c.socket.recvFrom(resp, bufLen, c.server, c.port)
+  else:
+    raise newException(TimeoutError, "Call to 'sendQuery' timed out.")
 
   buf.setPosition(0)
   buf.write(resp)

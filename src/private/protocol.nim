@@ -159,3 +159,5 @@ proc parseResponse*(data: StringStream): Response =
   for _ in 0..<result.header.nscount.int:
     var answer = parseRR(data)
     result.authorityRRs.add(answer)
+  assert data.atEnd()
+  data.close()
