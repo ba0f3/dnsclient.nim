@@ -150,8 +150,6 @@ proc parseResponse*(data: StringStream): Response =
   result.header = parseHeader(data)
   result.question = parseQuestion(data)
 
-
-  echo "-".repeat(20)
   for _ in 0..<result.header.ancount.int:
      var answer = parseRR(data)
      result.answers.add(answer)

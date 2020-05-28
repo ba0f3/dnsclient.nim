@@ -54,6 +54,8 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A, timeout = 500): Re
   buf.setPosition(0)
   result = parseResponse(buf)
 
+proc close*(c: DNSClient) = c.socket.close()
+
 when isMainModule:
   import os
   if paramCount() != 2:
