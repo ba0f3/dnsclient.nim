@@ -33,3 +33,12 @@ test "query CNAME":
   assert resp.answers[0].kind == CNAME
   let rr = CNAMERecord(resp.answers[0])
   assert rr.cname == "example.huy.im"
+
+test "query SRV":
+  let resp = client.sendQuery("_smtp._tcp.example.huy.im", SRV)
+  assert resp.answers[0].kind == SRV
+  let rr = SRVRecord(resp.answers[0])
+  assert rr.priority == 10
+  assert rr.weight == 15
+  assert rr.port == 25
+  assert rr.target == "smtp.yandex.ru"

@@ -138,6 +138,8 @@ proc parseRR(data: StringStream): ResourceRecord =
     result = SOARecord(name: name, kind: kind)
   of TXT:
     result = TXTRecord(name: name, kind: kind)
+  of SRV:
+    result = SRVRecord(name: name, kind: kind)
   else:
     raise newException(ValueError, "RR for " & $kind & " is not implemented yet")
 
