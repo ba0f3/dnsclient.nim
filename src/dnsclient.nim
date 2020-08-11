@@ -36,9 +36,13 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A, timeout = 500): Re
   buf.setPosition(0)
 
   var data = newStringOfCap(bufLen)
-  discard buf.readData(addr data, bufLen)
-
-  c.socket.sendTo(c.server, c.port, addr data, bufLen)
+  data.setLen 1
+    # ugly hack, nim should provide a way to get address of 1st element of a string
+    # with non-zero capacity (ie underlying c object not nil) and with 0 elements
+  data[0] = 'x'
+  let n = buf.readData(data[0].addr, bufLen)
+  doAssert n == bufLen
+  c.socket.sendTo(c.server, c.port, data[0].addr, bufLen)
 
   bufLen = 1024
   var
