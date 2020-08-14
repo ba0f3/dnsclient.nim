@@ -35,11 +35,10 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A, timeout = 500): Re
   var bufLen = buf.getPosition()
   buf.setPosition(0)
 
-  var data = newStringOfCap(bufLen)
-  discard buf.readData(addr data, bufLen)
-
-  c.socket.sendTo(c.server, c.port, addr data, bufLen)
-
+  var data = alloc0(bufLen)
+  defer: dealloc(data)
+  discard buf.readData(data, bufLen)
+  c.socket.sendTo(c.server, c.port, data, bufLen)
   bufLen = 1024
   var
     resp = newStringOfCap(bufLen)
