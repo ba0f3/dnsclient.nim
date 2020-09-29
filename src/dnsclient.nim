@@ -64,7 +64,10 @@ when isMainModule:
   var
     qtype = paramStr(1)
     kind: QKind
-  for k in QKind.low..QKind.high:
+  # TODO: find a better way, this is inefficient especially if large values
+  # are added to `QKind`
+  for k2 in QKind.low.int..QKind.high.int:
+    let k = k2.QKind
     if qtype == $k:
       kind = k
       break
