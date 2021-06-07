@@ -3,7 +3,7 @@
 # Simple DNS client
 
 import strutils, streams, net, nativesockets, endians
-import private/[protocol, records, types]
+import dnsclientpkg/[protocol, records, types]
 
 export records, types, TimeoutError
 
