@@ -52,3 +52,10 @@ proc getName*(data: StringStream): string =
 proc ipv4ToString*(ip: int32): string =
   let arr = cast[array[4, uint8]](ip)
   arr.join(".")
+
+proc ipv6ToString*(ip6: array[16, uint8]): string =
+  for i in 0..<8:
+    result &= ":"
+    result &= ip6[i * 2].toHex()
+    result &= ip6[i * 2 + 1].toHex()
+  result.removePrefix(":")

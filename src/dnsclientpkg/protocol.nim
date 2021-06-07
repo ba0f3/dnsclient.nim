@@ -118,6 +118,8 @@ proc parseRR(data: StringStream): ResourceRecord =
   case kind
   of A:
     result = ARecord(name: name, kind: kind)
+  of AAAA:
+    result = AAAARecord(name: name, kind: kind)
   of CNAME:
     result = CNAMERecord(name: name, kind: kind)
   of HINFO:
