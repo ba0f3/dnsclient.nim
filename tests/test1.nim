@@ -15,6 +15,12 @@ test "query A":
   let rr = ARecord(resp.answers[0])
   assert rr.toString() == "8.8.8.8"
 
+test "query AAAA":
+  let resp = client.sendQuery("google.fr", AAAA)
+  assert resp.answers[0].kind == AAAA
+  let rr = AAAARecord(resp.answers[0])
+  #assert rr.toString() == "0000:0000:0000:0000:0000:0000:0000:0001" ??
+
 test "query TXT":
   let resp = client.sendQuery("txt.example.huy.im", TXT)
   assert resp.answers[0].kind == TXT
