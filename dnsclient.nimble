@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.1.1"
 author        = "Huy Doan"
 description   = "Simple DNS Client & Library"
 license       = "MIT"
