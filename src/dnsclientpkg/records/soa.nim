@@ -7,7 +7,7 @@ type SOARecord* = ref object of ResourceRecord
   expire*: int32
   minimum*: uint32
 
-method toString*(r: SOARecord): string = "$# $# $# $# $# $# $#" % [r.mname, r.rname, $r.serial, $r.refresh, $r.retry, $r.expire, $r.minimum]
+method toString*(r: SOARecord): string = [r.mname, r.rname, $r.serial, $r.refresh, $r.retry, $r.expire, $r.minimum].join(" ")
 
 method parse*(r: SOARecord, data: StringStream) =
   r.mname = data.getName()
