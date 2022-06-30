@@ -25,7 +25,7 @@ test "query TXT":
   let resp = client.sendQuery("txt.example.huy.im", TXT)
   assert resp.answers[0].kind == TXT
   let rr = TXTRecord(resp.answers[0])
-  assert rr.data == "dnsclient.nim"
+  assert rr.strings == @["dnsclient.nim"]
 
 test "query MX":
   let resp = client.sendQuery("mx.example.huy.im", MX)
