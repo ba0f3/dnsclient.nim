@@ -2,7 +2,7 @@
 # Copyright Huy Doan
 # Simple DNS client
 
-import strutils, streams, net, nativesockets, endians
+import streams, net, nativesockets
 import dnsclientpkg/[protocol, records, types]
 
 export records, types, TimeoutError
@@ -48,10 +48,7 @@ proc sendQuery*(c: DNSClient, query: string, kind: QKind = A, timeout = 500): Re
   else:
     raise newException(TimeoutError, "Call to 'sendQuery' timed out.")
 
-  buf.setPosition(0)
-  buf.write(resp)
-  buf.setPosition(0)
-  result = parseResponse(buf)
+  result = parseResponse(resp)
 
 proc close*(c: DNSClient) = c.socket.close()
 

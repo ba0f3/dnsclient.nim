@@ -106,8 +106,8 @@ type
 
 
 
-method parse*(r: ResourceRecord, data: StringStream) {.base, raises: [Defect, OSError, IOError].} =
+method parse*(r: ResourceRecord, data: StringStream) {.base.} =
   raise newException(LibraryError, "parser for " & $r.kind & " is not implemented yet")
 
-method toString*(r: ResourceRecord): string {.base, raises: [Defect, OSError, IOError].} =
+method toString*(r: ResourceRecord): string {.base.} =
   raise newException(LibraryError, "to override!")
