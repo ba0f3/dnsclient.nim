@@ -40,7 +40,7 @@ proc getName*(data: StringStream): string =
     kind = LabelType(length and TYPE_MASK)
     case kind
     of TYPE_INDIR:
-      # lenght is first octet << 8 + last octet
+      # length is first octet << 8 + last octet
       offset = (length.uint16 shl 8 + data.readUint8()) xor 0xC000'u16
       lastPos = data.getPosition()
       data.setPosition(offset.int)
@@ -63,7 +63,7 @@ proc getName*(data: StringStream): string =
         break # last label was INDIR, stop the loop
     else:
       #reversed
-      discard
+      break
   result = if labels.len == 1: labels[0] else: labels.join(".")
 
 proc ipv4ToString*(ip: int32): string =
