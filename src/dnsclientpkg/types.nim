@@ -106,8 +106,8 @@ type
 
 
 
-method parse*(r: ResourceRecord, data: StringStream) {.base.} =
+method parse*(r: ResourceRecord, data: StringStream) {.base, gcsafe.} =
   raise newException(LibraryError, "parser for " & $r.kind & " is not implemented yet")
 
-method toString*(r: ResourceRecord): string {.base.} =
+method toString*(r: ResourceRecord): string {.base, gcsafe.} =
   raise newException(LibraryError, "to override!")
