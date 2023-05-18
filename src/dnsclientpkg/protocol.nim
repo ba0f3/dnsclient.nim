@@ -105,8 +105,8 @@ proc parseHeader(data: StringStream): Header =
     raise newException(ValueError, "Invalid value for QR, expect 0 or 1, got " & $tmp)
   result.qr = QQuery(flags)
   result.qdcount = data.readShort()
-  if result.qdcount == 0:
-    raise newException(ValueError, "Question section must not be empty")
+  if result.qdcount != 1:
+    raise newException(ValueError, "The DNS message shall contain 1 question")
   result.ancount = data.readShort()
   result.nscount = data.readShort()
   result.arcount = data.readShort()
@@ -174,6 +174,7 @@ proc parseResponse*(data: string): Response =
   let stream = newStringStream(data)
 
   result.header = parseHeader(stream)
+
   result.question = parseQuestion(stream)
 
   for _ in 0..<result.header.ancount.int:
@@ -184,4 +185,5 @@ proc parseResponse*(data: string): Response =
     var answer = parseRR(stream)
     result.authorityRRs.add(answer)
   assert stream.atEnd()
+
   stream.close()
