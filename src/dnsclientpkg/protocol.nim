@@ -70,7 +70,7 @@ proc toStream*(q: var Question, data: StringStream) =
     labelLen = label.len.uint8
     if labelLen < 1.uint8:
       raise newException(ValueError, q.name & "is not a legal name (empty label)")
-    if labelLen >= 64.uint8:
+    if labelLen > MAX_LABEL_LENGTH:
       raise newException(ValueError, q.name & "is not a legal name (label too long)")
 
     data.write(labelLen)
@@ -168,8 +168,11 @@ proc parseRR(data: StringStream): ResourceRecord =
   result.parse(data)
 
 proc parseResponse*(data: string): Response =
-  if data.len < 12: # header length
+  if data.len < sizeof(Header): # header length
     raise newException(ValueError, "Invalid response header, got length of " & $data.len & " but expect 12")
+
+  if data.len >= MAX_PACKET_SIZE:
+    raise newException(ValueError, "Messages carried by UDP are restricted to 512 bytes")
 
   let stream = newStringStream(data)
 

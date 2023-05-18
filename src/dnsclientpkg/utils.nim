@@ -1,7 +1,9 @@
 import endians, streams, strutils
 
-const MAX_LABEL_LENGTH = 63
-const MAX_NAME_LENGTH = 255
+const
+  MAX_LABEL_LENGTH* = 63'u8  # RFC 1035, section 2.3.4
+  MAX_NAME_LENGTH* = 255 # RFC 1035, section 3.1
+  MAX_PACKET_SIZE* = 512 # RFC 1035, section 4.2.1
 
 const TYPE_MASK = 0xC0'u8
 type LabelType = enum
@@ -50,7 +52,7 @@ proc getName*(data: StringStream): string =
         raise newException(ValueError, "Nested compression label is not supported")
       # we will get the label in next loop as TYPE_LABEL
     of TYPE_LABEL:
-      if length.int > MAX_LABEL_LENGTH:
+      if length > MAX_LABEL_LENGTH:
         raise newException(ValueError, "Label too long, max 63 got " & $length)
       dec(lenLeft, length.int + 1)
       if lenLeft <= 0:
